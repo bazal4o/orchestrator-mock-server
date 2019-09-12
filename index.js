@@ -1,0 +1,93 @@
+var express = require("express")
+const app = express()
+var api = require("./apiOrchestrator")
+//import  * as api  from './apiOrchestrator'
+const defaultAgentQueueDelay = 3000;
+app.listen(3000,async  () => {
+  
+  console.log("Server running on port 3000");
+  
+});
+
+
+app.get("/orchestratorGetNodes",async (req, res) => 
+{
+  const nodes = await api.orchestratorGetCustomNodes()
+  const response = {
+    message: "/v1/nodes",
+    nodes: [],
+    status: ""
+  }
+  if (nodes) {
+    response.nodes = nodes
+    response.status = "SUCCESS"
+  } else {
+    response.status = "FAIL"
+  }
+  res.status(200).send({"response": response})
+})
+app.put("/v1/nodes/:node/services/:service/start", async (req, res) => {
+  let params = req.params;
+  const resp = api.getSuccessMessage(req.originalUrl)
+  res.status(200).send({"long_running_id": resp.long_running_id, "message": resp.message, "status": resp.status})
+  setTimeout( () => {
+    api.orchestratorStartService({nodeName: params.node, serviceName: params.service})
+  }, defaultAgentQueueDelay)
+})
+app.put("/v1/nodes/:node/services/:service/stop", async (req, res) => {
+  let params = req.params;
+  const resp = api.getSuccessMessage(req.originalUrl)
+  res.status(200).send({"long_running_id": resp.long_running_id, "message": resp.message, "status": resp.status})
+  setTimeout( () => {
+    api.orchestratorStopService({nodeName: params.node, serviceName: params.service})
+  }, defaultAgentQueueDelay)
+})
+app.put("/v1/nodes/:node/services/:service/restart", async (req, res) => {
+  let params = req.params;
+  const resp = api.getSuccessMessage(req.originalUrl)
+  res.status(200).send({"long_running_id": resp.long_running_id, "message": resp.message, "status": resp.status})
+  setTimeout( () => {
+    api.orchestratorReStartService({nodeName: params.node, serviceName: params.service})
+  }, defaultAgentQueueDelay)
+})
+app.put("/v1/nodes/:node/services/:service/stop", async (req, res) => {
+  let params = req.params;
+  console.log(params);
+  const resp = await api.orchestratorStopService()
+  res.status(200).send({"long_running_id": resp.long_running_id, "message": resp.message, "status": resp.status})
+});
+//Create service
+app.post("/v1/nodes/:node/services/:serviceName", async (req, res) =>{
+  let params = req.params;
+  
+  const resp = api.getSuccessMessage(req.originalUrl)
+  res.status(200).send({"long_running_id": resp.long_running_id, "message": resp.message, "status": resp.status})
+  setTimeout( () => {
+    api.orchestratorCreateService({nodeName: params.node, serviceName: params.serviceName})
+  }, defaultAgentQueueDelay)
+})
+//Remove service
+app.delete("/v1/nodes/:node/services/:serviceName", async (req, res) => {
+  let params = req.params;
+  const resp = api.getSuccessMessage(req.originalUrl)
+  res.status(200).send({"long_running_id": resp.long_running_id, "message": resp.message, "status": resp.status})
+  setTimeout( () => {
+    api.orchestratorDeleteService({nodeName: params.node, serviceName: params.serviceName})
+  }, defaultAgentQueueDelay )
+})
+app.get("/v1/nodes", async (req, res) => 
+{
+    const nodes = await api.orchestratorGetAllNodes()
+    const response = {
+      message: "/v1/nodes",
+      nodes: [],
+      status: ""
+    }
+    if (nodes) {
+      response.nodes = nodes
+      response.status = "SUCCESS"
+    } else {
+      response.status = "FAIL"
+    }
+    res.status(200).send(response)
+})
