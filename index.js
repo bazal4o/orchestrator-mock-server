@@ -83,7 +83,7 @@ app.put("/v1/nodes/:node/services/:service/restart", async (req, res) => {
 app.post("/v1/nodes/:node/service/:serviceName", async (req, res) =>{
   let params = req.params;
   
-  const resp = api.getSuccessMessage({root: req.originalUrl,node: params.node, service: params.service, task: "create"})
+  const resp = api.getSuccessMessage({root: req.originalUrl,node: params.node, service: params.serviceName, task: "create"})
   sendSuccess(req, res, resp)
   setTimeout( () => {
     api.orchestratorCreateService({nodeName: params.node, serviceName: params.serviceName, longRunningId: resp.long_running_id})
