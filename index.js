@@ -85,7 +85,7 @@ app.post("/v1/nodes/:node/service/:serviceName", async (req, res) =>{
 //Remove service
 app.delete("/v1/nodes/:node/service/:serviceName", async (req, res) => {
   let params = req.params;
-  const resp = api.getSuccessMessage({root: req.originalUrl,node: params.node, service: params.service, task: "remove"})
+  const resp = api.getSuccessMessage({root: req.originalUrl,node: params.node, service: params.serviceName, task: "remove"})
   res.status(200).send(resp)
   setTimeout( () => {
     api.orchestratorDeleteService({nodeName: params.node, serviceName: params.serviceName, longRunningId: resp.long_running_id})
