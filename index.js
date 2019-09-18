@@ -9,13 +9,20 @@ app.listen(3000,async  () => {
   
 });
 
+sendSuccess = (req, res, data) => {
+  console.log("Path: " + req.originalUrl)
+  console.log("Response")
+  console.log(data)
+  res.status(200).send(data)
+}
+
 app.get("/v1/longrunningid", async (req, res) => {
   const response = {
     long_running_ids: api.getAllLongRunningIds(),
   "message": "",
   "status": "SUCCESS"
   }
-  res.status(200).send(response)
+  sendSuccess(req, res, response)
 })
 app.get("/v1/longrunningid/:id", async (req, res) => {
   let params = req.params
@@ -24,7 +31,7 @@ app.get("/v1/longrunningid/:id", async (req, res) => {
   message: "",
   status: "SUCCESS"
   }
-  res.status(200).send(response)
+  sendSuccess(req, res, response)
 })
 app.get("/orchestratorGetNodes",async (req, res) => 
 {
@@ -40,12 +47,12 @@ app.get("/orchestratorGetNodes",async (req, res) =>
   } else {
     response.status = "FAIL"
   }
-  res.status(200).send({"response": response})
+  sendSuccess(req, res, {"response": response})
 })
 app.put("/v1/nodes/:node/services/:service/start", async (req, res) => {
   let params = req.params;
   const resp = api.getSuccessMessage({root: req.originalUrl,node: params.node, service: params.service, task: "start"})
-  res.status(200).send(resp)
+  sendSuccess(req, res, resp)
   setTimeout( () => {
     api.orchestratorStartService({nodeName: params.node, serviceName: params.service, longRunningId: resp.long_running_id})
   }, defaultAgentQueueDelay)
@@ -53,7 +60,7 @@ app.put("/v1/nodes/:node/services/:service/start", async (req, res) => {
 app.put("/v1/nodes/:node/services/:service/stop", async (req, res) => {
   let params = req.params;
   const resp = api.getSuccessMessage({root: req.originalUrl,node: params.node, service: params.service, task: "stop"})
-  res.status(200).send(resp)
+  sendSuccess(req, res, resp)
   setTimeout( () => {
     api.orchestratorStopService({nodeName: params.node, serviceName: params.service, longRunningId: resp.long_running_id})
   }, defaultAgentQueueDelay)
@@ -61,7 +68,7 @@ app.put("/v1/nodes/:node/services/:service/stop", async (req, res) => {
 app.put("/v1/nodes/:node/services/:service/restart", async (req, res) => {
   let params = req.params;
   const resp = api.getSuccessMessage({root: req.originalUrl,node: params.node, service: params.service, task: "restart"})
-  res.status(200).send(resp)
+  sendSuccess(req, res, resp)
   setTimeout( () => {
     api.orchestratorReStartService({nodeName: params.node, serviceName: params.service, longRunningId: resp.long_running_id })
   }, defaultAgentQueueDelay)
@@ -77,7 +84,7 @@ app.post("/v1/nodes/:node/service/:serviceName", async (req, res) =>{
   let params = req.params;
   
   const resp = api.getSuccessMessage({root: req.originalUrl,node: params.node, service: params.service, task: "create"})
-  res.status(200).send(resp)
+  sendSuccess(req, res, resp)
   setTimeout( () => {
     api.orchestratorCreateService({nodeName: params.node, serviceName: params.serviceName, longRunningId: resp.long_running_id})
   }, defaultAgentQueueDelay)
@@ -105,5 +112,5 @@ app.get("/v1/nodes", async (req, res) =>
     } else {
       response.status = "FAIL"
     }
-    res.status(200).send(response)
+    sendSuccess(req, res, response)
 })
