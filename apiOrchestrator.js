@@ -7,10 +7,22 @@ const ServiceHealthStatus = {
 }
 
 const ServiceNames = {
-    master: "federation-master",
-    worker: "federation-worker",
-    listener: "federation-thrift-service"
+  master: "virtualization-supervisor",
+  worker: "virtuallization-worker",
+  //worker: "directory",
+  listener: "virtualization-listener"
 }
+
+const longRunningDetailStatus = {
+    finished: "FINISHED",
+    error: "ERROR",
+    running: "RUNNING",
+    inqueue: "INQUEUE",
+    processing: "PROCESSING"
+}
+const longRunningIdsTransitionStates = [
+  longRunningDetailStatus.processing, longRunningDetailStatus.inqueue, longRunningDetailStatus.running, longRunningDetailStatus.finished
+]
 
 const ServiceStateStatus = {
     /**
@@ -57,6 +69,18 @@ const ServiceStateStatus = {
       ] 
     }
   ]
+const now = new Date();
+const longRunningIds = [
+  {
+    long_running_id: "sadfasdf",
+    status: longRunningDetailStatus.inqueue,
+    last_update_time: now.setSeconds(now.getSeconds() - 20),
+    submitted_time: now.setMinutes(now.getMinutes() - 1),
+    nodes: "node9.atscale.com",
+    services: ServiceNames.worker, 
+    task: "start"
+  }
+]
 const nodes = [
     { 
       node: "node1.atscale.com",
@@ -192,15 +216,38 @@ const nodes = [
       }    
     }, timeout)
   })
-  
-  const performLongRunningBackgroud = (action) => {
-    setTimeout(()=> {
-      action()
-    }, getLongRunningOperationTimeout())
+  const wait = async (milliseconds) => {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+  }
+  const performLongRunningBackgroud = async (action, id = null) => {
+    if (id) {
+      //get id
+      let idObject = longRunningIds.find(i => i.long_running_id === id)
+      let processed = false
+      let value = ""
+      let timeout = getLongRunningOperationTimeout()
+      timeout /= 4 
+      for (let i = 0; i < longRunningIdsTransitionStates.length; i++) {
+        value = await getNextIdStatusDetail(idObject.status, timeout)
+        console.log("Task Status: ", value);
+        idObject.status = value
+        if (value == longRunningDetailStatus.finished) {
+          processed = true;
+          break;
+        }
+      }
+      if (processed) {
+        action()
+      }     
+    } else {
+      setTimeout(()=> {
+        action()
+      }, getLongRunningOperationTimeout())
+    }
   }
   
   //returns a promise
-  const stopService = ({ nodeName, serviceName, callback }) => performDelayedOperation(() => {  
+  const stopService = ({ nodeName, serviceName, callback, longRunningId = null }) => performDelayedOperation(() => {  
     const service = getService({ nodeName, serviceName })
     if (service.state !== ServiceStateStatus.Running) {
       throw Error(`Can't stop service ${serviceName} for node${nodeName}, because it is not in running state. Current state is ${service.state}`)
@@ -214,19 +261,55 @@ const nodes = [
       if (callback) {
         callback()
       }
-    })
+    }, longRunningId)
   })
 
-  getSuccessMessage = (root) => {
+  const processLongRunningId = ({node, service, task}) => {
+    //Generate id
+    const id = new Date().getUTCMilliseconds().toString();
+    const creationTime = new Date()
+    //create longRunningId object
+    const longRunningIdObject = {
+        long_running_id: id,
+        status: longRunningDetailStatus.processing,
+        last_update_time: creationTime,
+        submitted_time: creationTime,
+        nodes: node ? node : "",
+        services: service ? service : "",
+        task: task ? task : ""
+       
+    }
+    longRunningIds.push(longRunningIdObject)
+    //return the generated id
+    return id;
+  }
+   getNextIdStatusDetail = async ( currentIdDetail, timeout ) => {
+    return performDelayedOperation(() => {
+      const currentIndex = longRunningIdsTransitionStates.indexOf(currentIdDetail)
+      if (currentIndex == longRunningIdsTransitionStates.length -1) {
+         return currentIdDetail
+      }  else {
+        return longRunningIdsTransitionStates[currentIndex + 1]
+      }
+    }, timeout)
+    
+  }
+
+  getSuccessMessage = ({root, node, service, task}) => {
       return {
-        "long_running_id": "asdfasdfadsf",
+        "long_running_id": processLongRunningId({node, service, task}),
         "message": root !== undefined ? root : "",
         "status": "SUCCESS"
     }
   }
-  
+  getLongRunningIdById = ({id}) => {
+    return longRunningIds.find(i => i.long_running_id === id.toString())
+  }
+  getAllLongRunningIds = () => {
+    return longRunningIds;
+  }
   // returns a promise
-  const startService = ({ nodeName, serviceName }) => performDelayedOperation(() => {
+  const startService = ({ nodeName, serviceName, longRunningId = null }) => performDelayedOperation(() => {
     const service = getService({ nodeName, serviceName })
     if (service.state === ServiceStateStatus.Running) {
       throw Error(`Can't start service ${serviceName} for node${nodeName}, because it is already in running state`)
@@ -239,7 +322,7 @@ const nodes = [
     performLongRunningBackgroud(() => { 
       service.state = ServiceStateStatus.Running
       service.health = ServiceHealthStatus.Ok
-    })  
+    }, longRunningId)  
   })
   
   const getNode = (nodeName ) => {
@@ -276,7 +359,7 @@ const nodes = [
           node.services[0].state = ServiceStateStatus.Running
           node.services[0].health = ServiceHealthStatus.Ok
           calledOnce = true
-        })
+        }, "sadfasdf")
       }
       return  nodes
     }, 2000)     
@@ -292,31 +375,31 @@ const nodes = [
     })     
   }
   
-   async function orchestratorStopService({ nodeName, serviceName }) {
-    await stopService( { nodeName, serviceName })
+   async function orchestratorStopService({ nodeName, serviceName, longRunningId }) {
+    await stopService( { nodeName, serviceName, longRunningId })
   }
   
-   async function orchestratorStartService({ nodeName, serviceName }) {
-    await startService({ nodeName, serviceName })
+   async function orchestratorStartService({ nodeName, serviceName, longRunningId }) {
+    await startService({ nodeName, serviceName, longRunningId })
   }
   
-   async function orchestratorReStartService({ nodeName, serviceName }) {
-    const callback = () => {startService({ nodeName, serviceName })}
+   async function orchestratorReStartService({ nodeName, serviceName, longRunningId }) {
+    const callback = () => {startService({ nodeName, serviceName,longRunningId  })}
     await stopService({ nodeName, serviceName, callback })
   }
   
-   async function orchestratorDeleteService({ nodeName, serviceName }) {
+   async function orchestratorDeleteService({ nodeName, serviceName, longRunningId }) {
     //intentionally we DO NOT wait for the operation
     const { node, service } = getNodeAndService({ nodeName, serviceName })
     service.state = ServiceStateStatus.Stopping;
     performLongRunningBackgroud(() => {
       const { node } = getNodeAndService({ nodeName, serviceName })
       node.services = node.services.filter( s => s.service !== serviceName )
-    })
+    }, longRunningId)
     return performDelayedOperation(() => "hurray, we do nto expect response really")
   }
   
-   async function orchestratorCreateService({ nodeName, serviceName }) {
+   async function orchestratorCreateService({ nodeName, serviceName, longRunningId }) {
     //intentionally we DO NOT wait for the operation
 
     performLongRunningBackgroud(() => {
@@ -325,7 +408,7 @@ const nodes = [
       node.services.push(newService)
       performLongRunningBackgroud(() => {
         newService.state = ServiceStateStatus.Running
-      })
+      }, longRunningId)
     })
     return performDelayedOperation(() => "hurray, we do nto expect response really")
   }
@@ -373,7 +456,9 @@ const nodes = [
     getSuccessMessage: getSuccessMessage,
     orchestratorCreateService: orchestratorCreateService,
     orchestratorDeleteService: orchestratorDeleteService,
-    orchestratorReStartService: orchestratorReStartService
+    orchestratorReStartService: orchestratorReStartService,
+    getAllLongRunningIds: getAllLongRunningIds,
+    getLongRunningIdById: getLongRunningIdById
   }
   
 //   export async function orchestratorGetNodeLatestViolations(nodeName) {
