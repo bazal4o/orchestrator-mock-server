@@ -7,10 +7,10 @@ const ServiceHealthStatus = {
 }
 
 const ServiceNames = {
-  master: "virtualization-supervisor",
-  worker: "virtuallization-worker",
+  master: "virtualization_supervisor",
+  worker: "virtualization_worker",
   //worker: "directory",
-  listener: "virtualization-listener"
+  listener: "virtualization_listener"
 }
 
 const longRunningDetailStatus = {
@@ -228,7 +228,7 @@ const nodes = [
       let timeout = getLongRunningOperationTimeout()
       timeout /= 4 
       for (let i = 0; i < longRunningIdsTransitionStates.length; i++) {
-        value = await getNextIdStatusDetail(idObject.status, timeout)
+        value = await processNextIdStatusDetail(idObject.status, timeout)
         console.log("Task Status: ", value);
         idObject.status = value
         if (value == longRunningDetailStatus.finished) {
@@ -245,23 +245,96 @@ const nodes = [
       }, getLongRunningOperationTimeout())
     }
   }
-  
+    // returns a promise
+    const startService = ({ nodeName, serviceName, longRunningId = null }) => performDelayedOperation(() => {
+      nodeNames = nodeName.split(",")
+      if (nodeNames.length > 1) {
+        if (longRunningId) {
+          longRunningIdNext(longRunningId)
+        }
+        for (let i = 0; i < nodeNames.length; i++) {
+          const element = nodeNames[i];
+          const service = getService({ nodeName: element, serviceName })
+          
+          service.state = ServiceStateStatus.Starting
+          service.health = ServiceHealthStatus.Warning
+        }
+        performLongRunningBackgroud(() => { 
+          console.log("Before: ", nodes);
+        
+          for (let i = 0; i < nodeNames.length; i++) {
+            const element = nodeNames[i];
+            const service = getService({ nodeName: element, serviceName })
+            service.state = ServiceStateStatus.Running
+            service.health = ServiceHealthStatus.Ok
+          }
+          console.log("After: ", nodes)
+        }, longRunningId)
+      } else {
+        const service = getService({ nodeName, serviceName })
+        if (service.state === ServiceStateStatus.Running) {
+          console.log(`Can't start service ${serviceName} for node${nodeName}, because it is already in running state`)
+        }
+        if (service.state === ServiceStateStatus.Starting) {
+          console.log(`Can't start service ${serviceName} for node${nodeName}, because it is in Starting mode`)
+        }
+        service.state = ServiceStateStatus.Starting
+        service.health = ServiceHealthStatus.Warning
+        performLongRunningBackgroud(() => { 
+          service.state = ServiceStateStatus.Running
+          service.health = ServiceHealthStatus.Ok
+        }, longRunningId)  
+      }
+    })
+    
   //returns a promise
   const stopService = ({ nodeName, serviceName, callback, longRunningId = null }) => performDelayedOperation(() => {  
-    const service = getService({ nodeName, serviceName })
-    if (service.state !== ServiceStateStatus.Running) {
-      throw Error(`Can't stop service ${serviceName} for node${nodeName}, because it is not in running state. Current state is ${service.state}`)
-    }
-    service.state = ServiceStateStatus.Stopping
-    service.health = ServiceHealthStatus.Warning
-    performLongRunningBackgroud(() => { 
-      console.log("Before: ", nodes);
-      service.state = ServiceStateStatus.Stopped
-      service.health = ServiceHealthStatus.Error
-      if (callback) {
-        callback()
+    nodeNames = nodeName.split(",")
+    if (nodeNames.length > 1) {
+      //MultiNodes run
+      if (longRunningId) {
+        longRunningIdNext(longRunningId)
       }
-    }, longRunningId)
+      for (let i = 0; i < nodeNames.length; i++) {
+        const element = nodeNames[i];
+        const service = getService({ nodeName: element, serviceName })
+        if (service.state !== ServiceStateStatus.Running) {
+          console.log(`Can't stop service ${serviceName} for node${nodeName}, because it is not in running state. Current state is ${service.state}`)
+        }
+        service.state = ServiceStateStatus.Stopping
+        service.health = ServiceHealthStatus.Warning
+      }
+      performLongRunningBackgroud(() => { 
+        console.log("Before: ", nodes);
+      
+        for (let i = 0; i < nodeNames.length; i++) {
+          const element = nodeNames[i];
+          const service = getService({ nodeName: element, serviceName })
+          service.state = ServiceStateStatus.Stopped
+          service.health = ServiceHealthStatus.Error
+        }
+        console.log("After: ", nodes)
+        if (callback) {
+          callback()
+        }
+      }, longRunningId)
+    } else {
+    //single run 
+      const service = getService({ nodeName, serviceName })
+      if (service.state !== ServiceStateStatus.Running) {
+        throw Error(`Can't stop service ${serviceName} for node${nodeName}, because it is not in running state. Current state is ${service.state}`)
+      }
+      service.state = ServiceStateStatus.Stopping
+      service.health = ServiceHealthStatus.Warning
+      performLongRunningBackgroud(() => { 
+        console.log("Before: ", nodes);
+        service.state = ServiceStateStatus.Stopped
+        service.health = ServiceHealthStatus.Error
+        if (callback) {
+          callback()
+        }
+      }, longRunningId)
+    }
   })
 
   const processLongRunningId = ({node, service, task}) => {
@@ -283,14 +356,21 @@ const nodes = [
     //return the generated id
     return id;
   }
-   getNextIdStatusDetail = async ( currentIdDetail, timeout ) => {
+  getNextidStatusDetail = (currentIdDetail) => {
+    const currentIndex = longRunningIdsTransitionStates.indexOf(currentIdDetail)
+    if (currentIndex == longRunningIdsTransitionStates.length -1) {
+       return currentIdDetail
+    }  else {
+      return longRunningIdsTransitionStates[currentIndex + 1]
+    }
+  }
+  longRunningIdNext = (id) => {
+    let idObject = longRunningIds.find(i => i.long_running_id === id)
+    idObject.status = getNextidStatusDetail(idObject.status)
+  }
+   processNextIdStatusDetail = async ( currentIdDetail, timeout ) => {
     return performDelayedOperation(() => {
-      const currentIndex = longRunningIdsTransitionStates.indexOf(currentIdDetail)
-      if (currentIndex == longRunningIdsTransitionStates.length -1) {
-         return currentIdDetail
-      }  else {
-        return longRunningIdsTransitionStates[currentIndex + 1]
-      }
+      return getNextidStatusDetail(currentIdDetail)
     }, timeout)
     
   }
@@ -308,23 +388,7 @@ const nodes = [
   getAllLongRunningIds = () => {
     return longRunningIds;
   }
-  // returns a promise
-  const startService = ({ nodeName, serviceName, longRunningId = null }) => performDelayedOperation(() => {
-    const service = getService({ nodeName, serviceName })
-    if (service.state === ServiceStateStatus.Running) {
-      throw Error(`Can't start service ${serviceName} for node${nodeName}, because it is already in running state`)
-    }
-    if (service.state === ServiceStateStatus.Starting) {
-      throw Error(`Can't start service ${serviceName} for node${nodeName}, because it is in Starting mode`)
-    }
-    service.state = ServiceStateStatus.Starting
-    service.health = ServiceHealthStatus.Warning
-    performLongRunningBackgroud(() => { 
-      service.state = ServiceStateStatus.Running
-      service.health = ServiceHealthStatus.Ok
-    }, longRunningId)  
-  })
-  
+
   const getNode = (nodeName ) => {
     const node = nodes.find(x => x.node == nodeName )
     if (!node) {
