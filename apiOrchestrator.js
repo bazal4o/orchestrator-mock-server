@@ -95,6 +95,8 @@ const nodes = [
       node: "node2.atscale.com",
       services: [
         { service: ServiceNames.master, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
+        { service: ServiceNames.listener, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
+        
         { service: "Bitcoin miner", health: ServiceHealthStatus.Warning, state: ServiceStateStatus.Running },
         { service: "Periodic Command Scheduler", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Running },
         { service: "Hardware Monitoring System", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Running },
@@ -103,33 +105,40 @@ const nodes = [
     { 
       node: "node3.atscale.com",
       services: [
-        { service: ServiceNames.master, health: ServiceHealthStatus.Error, state: ServiceStateStatus.Running },
         { service: "Periodic Command Scheduler", health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
         { service: "Health monitoring", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Running },
   
       ] 
     },
     { 
-      node: "node4.atscale.com",
+      node: "node4.atscale.com.backoff",
       services: [
-        { service: ServiceNames.master, health: ServiceHealthStatus.Warning, state: ServiceStateStatus.Running },
+        { service: ServiceNames.master, health: ServiceHealthStatus.Warning, state: ServiceStateStatus.Backoff },
         { service: "System Monitoring daemon", health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
         { service: "BitTorrent Client", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Stopped }
       ] 
     },  
     { 
-      node: "node5.atscale.com",
+      node: "node5.atscale.com.exited",
       // ip: "192.168.1.234",
       services: [
-        { service: ServiceNames.worker, health: ServiceHealthStatus.Warning, state: ServiceStateStatus.Running },
+        { service: ServiceNames.worker, health: ServiceHealthStatus.Error, state: ServiceStateStatus.Exited },
         { service: "Periodic Command Scheduler", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Running },
         { service: "Ethereum node", health: ServiceHealthStatus.Warning, state: ServiceStateStatus.Running },
       ] 
     },
     { 
-      node: "node6.atscale.com",
+      node: "node6.atscale.com.fatal",
       services: [
-        { service: ServiceNames.worker, health: ServiceHealthStatus.Error, state: ServiceStateStatus.Stopped },
+        { service: ServiceNames.worker, health: ServiceHealthStatus.Error, state: ServiceStateStatus.Fatal },
+        { service: "Health monitoring", health: "Unknown", state: ServiceStateStatus.Running },
+        { service: "Periodic Command Scheduler", health: ServiceHealthStatus.Warning, state: ServiceStateStatus.Running },
+      ] 
+    },
+    { 
+      node: "node36.atscale.com.unknown",
+      services: [
+        { service: ServiceNames.worker, health: ServiceHealthStatus.Error, state: ServiceStateStatus.Unknown },
         { service: "Health monitoring", health: "Unknown", state: ServiceStateStatus.Running },
         { service: "Periodic Command Scheduler", health: ServiceHealthStatus.Warning, state: ServiceStateStatus.Running },
       ] 
@@ -143,12 +152,13 @@ const nodes = [
     { 
       node: "node25.atscale.com",
       services: [
-        { service: ServiceNames.listener, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running }
+        { service: ServiceNames.worker, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
       ] 
     },
     { 
       node: "node7.atscale.com",
       services: [
+        { service: ServiceNames.worker, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
         { service: "torrent client", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Stopped }
       ] 
     },
@@ -156,6 +166,7 @@ const nodes = [
       node: "node8.atscale.com",
       // ip: "192.168.1.234",
       services: [
+        { service: ServiceNames.worker, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
         { service: "another service running client running", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Stopped }
       ]
     },
@@ -404,9 +415,9 @@ const nodes = [
   const getNodeAndService = ({ nodeName, serviceName }) => {
     const node = getNode(nodeName)
     const service = node.services.find(item => item.service == serviceName )
-    if (!service) {
-      throw Error(`Can't find service ${serviceName} for node${nodeName}`)
-    }
+    // if (!service) {
+    //   throw Error(`Can't find service ${serviceName} for node${nodeName}`)
+    // }
     return { node, service }
   }
   async function orchestratorGetCustomNodes() {
@@ -470,6 +481,15 @@ const nodes = [
       const node = getNode(nodeName)
       const newService = { service: serviceName, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Starting  }
       node.services.push(newService)
+      // let newService = getService({nodeName: nodeName, serviceName: serviceName})
+      // if (!newService) {
+      //   const node = getNode(nodeName)
+      //   const newService = { service: serviceName, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Starting  }
+      //   node.services.push(newService)
+      // } else {
+      //   newService.state = ServiceStateStatus.Starting
+      // }
+      
       performLongRunningBackgroud(() => {
         newService.state = ServiceStateStatus.Running
       }, longRunningId)
