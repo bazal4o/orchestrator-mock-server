@@ -76,8 +76,8 @@ const longRunningIds = [
     status: longRunningDetailStatus.inqueue,
     last_update_time: now.setSeconds(now.getSeconds() - 20),
     submitted_time: now.setMinutes(now.getMinutes() - 1),
-    nodes: "node9.atscale.com",
-    services: ServiceNames.worker, 
+    nodes: ["node9.atscale.com"],
+    services: [ServiceNames.worker], 
     task: "start"
   }
 ]
