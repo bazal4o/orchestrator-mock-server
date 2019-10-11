@@ -113,7 +113,7 @@ const nodes = [
     { 
       node: "node4.atscale.com.backoff",
       services: [
-        { service: ServiceNames.master, health: ServiceHealthStatus.Warning, state: ServiceStateStatus.Backoff },
+        { service: ServiceNames.worker, health: ServiceHealthStatus.Warning, state: ServiceStateStatus.Backoff },
         { service: "System Monitoring daemon", health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
         { service: "BitTorrent Client", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Stopped }
       ] 
