@@ -178,13 +178,13 @@ const nodes = [
       ] 
     },
     { 
-      node: "node10.atscale.com",
+      node: "node10.atscale.com.with.some-very-long-node-name",
       services: [
         { service: ServiceNames.worker, health: ServiceHealthStatus.Error, state: ServiceStateStatus.Fatal }
       ] 
     },
     { 
-      node: "node11.atscale.com",
+      node: "node11.atscale.comwith.some-very-long-node-namewith.some-very-long-node-namewith.some-very-long-node-name",
       // ip: "10.0.1.23",
       services: [
         { service: "Periodic Command Scheduler", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Running },
@@ -479,7 +479,7 @@ const nodes = [
 
     performLongRunningBackgroud(() => {
       const node = getNode(nodeName)
-      const newService = { service: serviceName, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Starting  }
+      const newService = { service: serviceName, health: ServiceHealthStatus.Error, state: ServiceStateStatus.Stopped  }
       node.services.push(newService)
       // let newService = getService({nodeName: nodeName, serviceName: serviceName})
       // if (!newService) {
@@ -491,7 +491,7 @@ const nodes = [
       // }
       
       performLongRunningBackgroud(() => {
-        newService.state = ServiceStateStatus.Running
+        newService.state = ServiceStateStatus.Stopped
       }, longRunningId)
     })
     return performDelayedOperation(() => "hurray, we do nto expect response really")
