@@ -207,8 +207,8 @@ const nodes = [
 
   
   const defaultTimeout = 200
-  const longRunningOperationMinTimeout = 3 * 1000
-  const longRunningOperationMaxTimeout = 8 * 1000
+  const longRunningOperationMinTimeout = 2 * 1000
+  const longRunningOperationMaxTimeout = 4 * 1000
   let calledOnce = false
   
   const getLongRunningOperationTimeout = () => {
