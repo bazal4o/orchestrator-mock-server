@@ -146,7 +146,7 @@ const nodes = [
     { 
       node: "node26.atscale.com",
       services: [
-        { service: ServiceNames.master, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running }
+        { service: ServiceNames.worker, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running }
       ] 
     },
     { 
