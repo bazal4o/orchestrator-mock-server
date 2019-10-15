@@ -111,7 +111,7 @@ const nodes = [
       ] 
     },
     { 
-      node: "node4.atscale.com.backoff",
+      node: "gnode4.atscale.com.backoff",
       services: [
         { service: ServiceNames.worker, health: ServiceHealthStatus.Warning, state: ServiceStateStatus.Backoff },
         { service: "System Monitoring daemon", health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
@@ -119,7 +119,7 @@ const nodes = [
       ] 
     },  
     { 
-      node: "node5.atscale.com.exited",
+      node: "dnode5.atscale.com.exited",
       // ip: "192.168.1.234",
       services: [
         { service: ServiceNames.worker, health: ServiceHealthStatus.Error, state: ServiceStateStatus.Exited },
@@ -128,7 +128,7 @@ const nodes = [
       ] 
     },
     { 
-      node: "node6.atscale.com.fatal",
+      node: "vnode6.atscale.com.fatal",
       services: [
         { service: ServiceNames.worker, health: ServiceHealthStatus.Error, state: ServiceStateStatus.Fatal },
         { service: "Health monitoring", health: "Unknown", state: ServiceStateStatus.Running },
@@ -150,7 +150,7 @@ const nodes = [
       ] 
     },
     { 
-      node: "node25.atscale.com",
+      node: "knode25.atscale.com",
       services: [
         { service: ServiceNames.worker, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
       ] 
@@ -163,7 +163,7 @@ const nodes = [
       ] 
     },
     { 
-      node: "node8.atscale.com",
+      node: "anode8.atscale.com",
       // ip: "192.168.1.234",
       services: [
         { service: ServiceNames.worker, health: ServiceHealthStatus.Ok, state: ServiceStateStatus.Running },
@@ -192,14 +192,14 @@ const nodes = [
       ] 
     },
     { 
-      node: "node12.atscale.com",
+      node: "gnode12.atscale.com",
       services: [
         { service: "another service running client running", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Stopped },
         { service: "AI prediction service", health: ServiceHealthStatus.Error, state: ServiceStateStatus.Stopped }
       ] 
     },
     { 
-      node: "node15.atscale.com",
+      node: "anode15.atscale.com",
       services: []
     },
   ]
